@@ -36,7 +36,7 @@ onready var player_rectangle = Rect2(player_position, paddle_size)
 
 # AI paddle
 onready var AI_position = Vector2(screen_width - (paddle_padding + paddle_size.x), half_screen_height-half_paddle_height)
-onready var AI_start_position = Rect2(AI_position, paddle_size)
+onready var AI_rectangle = Rect2(AI_position, paddle_size)
 
 # Font variable
 var font = DynamicFont.new()
@@ -44,7 +44,7 @@ var roboto_font_file = load("res://assets/fonts/Roboto/Roboto-Black.ttf")
 var font_size = 24
 var half_font_width
 var font_height
-var string_value = "Hello world"
+var string_value = "Start the game by pressing Spacebar."
 
 # String variable
 var string_position
@@ -57,6 +57,20 @@ var delta_key_press = RESET_DELTA_KEY
 # Player
 var player_speed = 200.0
 
+# Scoring
+var player_score = 0
+var player_score_text = player_score as String
+var player_text_half_width
+var player_score_position
+
+var AI_score = 0
+var AI_score_text = AI_score as String
+var AI_text_half_width
+var AI_score_position
+
+const MAX_SCORE = 3
+var is_player_win
+
 func _ready() -> void:
 	font.font_data = roboto_font_file
 	font.size = font_size
@@ -64,26 +78,49 @@ func _ready() -> void:
 	font_height = font.get_height()
 	string_position = Vector2(half_screen_width - half_font_width, font_height)
 	
+	player_text_half_width = font.get_string_size(player_score_text).x/2
+	player_score_position = Vector2(half_screen_width - (half_screen_width/2) - player_text_half_width, font_height + 50)
+	AI_text_half_width = font.get_string_size(AI_score_text).x/2
+	AI_score_position = Vector2(half_screen_width + (half_screen_width/2) - AI_text_half_width, font_height + 50)
+	
 func _physics_process(delta: float) -> void:
 	delta_key_press += delta
 	
 	match current_game_state:
 		GAME_STATE.MENU:
-			change_string("MENU")
-			
+			if is_player_win == true:
+				change_string("You won! Press Spacebar to start a new game.")
+			elif is_player_win == false:
+				# elif to not match null value
+				change_string("AI won. Press Spacebar to start a new game.")
+				
 			if Input.is_key_pressed(KEY_SPACE) and delta_key_press > MAX_KEY_TIME:
 				current_game_state = GAME_STATE.SERVE
 				delta_key_press = RESET_DELTA_KEY
+				player_score_text = player_score as String
+				AI_score_text = AI_score as String
 
 		GAME_STATE.SERVE:
-			ball_position = starting_ball_position
+			set_starting_position()
+			update()
+			if player_score == MAX_SCORE:
+				current_game_state = GAME_STATE.MENU
+				player_score = 0
+				AI_score = 0
+				is_player_win = true
+				
+			if AI_score == MAX_SCORE:
+				current_game_state = GAME_STATE.MENU
+				player_score = 0
+				AI_score = 0
+				is_player_win = false
 			
 			if is_player_serve:
 				ball_speed = starting_speed
-				change_string("Player Serve")
+				change_string("Player Serve: press Spacebar to serve.")
 			else:
 				ball_speed = -starting_speed
-				change_string("AI Serve")
+				change_string("AI Serve: press Spacebar to serve.")
 			
 			if Input.is_key_pressed(KEY_SPACE) and delta_key_press > MAX_KEY_TIME:
 				current_game_state = GAME_STATE.PLAY
@@ -102,10 +139,23 @@ func _physics_process(delta: float) -> void:
 				delta_key_press = RESET_DELTA_KEY
 				is_player_serve = true
 				
+				# If the ball is touching the left side of the screen, AI scores a point
+				AI_score += 1
+				AI_score_text = AI_score as String
+				
 			if ball_position.x >= screen_width:
 				current_game_state = GAME_STATE.SERVE
 				delta_key_press = RESET_DELTA_KEY
 				is_player_serve = false
+				
+				# If the ball is touching the right side of the screen, player scores a point
+				player_score += 1
+				player_score_text = player_score as String
+				
+			if ball_position.y - ball_radius <= 0.0:
+				ball_speed.y = -ball_speed.y
+			if ball_position.y + ball_radius >= screen_height:
+				ball_speed.y = -ball_speed.y
 			
 			if (ball_position.x - ball_radius >= player_position.x and
 			ball_position.x - ball_radius <= player_position.x + paddle_size.x):
@@ -141,26 +191,43 @@ func _physics_process(delta: float) -> void:
 					var temp_ball_speed = Vector2(-ball_speed.x, 400.0)
 					ball_speed = temp_ball_speed
 					
-			# TODO: Add collisions to to the top and bottom edges of the screen
-				
 			# Player movement
 			if Input.is_key_pressed(KEY_W):
 				player_position.y += -player_speed * delta
+				player_position.y = clamp(player_position.y, 0.0, screen_height - paddle_size.y)
 				player_rectangle = Rect2(player_position, paddle_size)
 			if Input.is_key_pressed(KEY_S):
 				player_position.y += player_speed * delta
+				player_position.y = clamp(player_position.y, 0.0, screen_height - paddle_size.y)
 				player_rectangle = Rect2(player_position, paddle_size)
+				
+			# AI movement
+			if ball_position.y > AI_position.y + (paddle_size.y/2 + 10):
+				AI_position.y += 250 * delta # AI speed
+			if ball_position.y < AI_position.y + (paddle_size.y/2 - 10):
+				AI_position.y -= 250 * delta
+			
+			AI_position.y = clamp(AI_position.y, 0.0, screen_height - paddle_size.y)
+			AI_rectangle = Rect2(AI_position, paddle_size)
 			
 			update()
 	
 func _draw() -> void:
-	set_starting_position()
-	
-func set_starting_position():
 	draw_circle(ball_position, ball_radius, ball_color)
 	draw_rect(player_rectangle, paddle_color)
-	draw_rect(AI_start_position, paddle_color)
+	draw_rect(AI_rectangle, paddle_color)
 	draw_string(font, string_position, string_value)
+	draw_string(font, player_score_position, player_score_text)
+	draw_string(font, AI_score_position, AI_score_text)
+	
+func set_starting_position():
+	AI_position = Vector2(screen_width - (paddle_padding + paddle_size.x), half_screen_height-half_paddle_height)
+	AI_rectangle = Rect2(AI_position, paddle_size)
+	
+	player_position = Vector2(paddle_padding, half_screen_height-half_paddle_height)
+	player_rectangle = Rect2(player_position, paddle_size)
+	
+	ball_position = starting_ball_position
 	
 func change_string(new_string_value):
 	string_value = new_string_value
