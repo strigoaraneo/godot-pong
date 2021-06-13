@@ -14,15 +14,8 @@ onready var screen_height = get_tree().get_root().size.y
 onready var half_screen_height = screen_height/2
 onready var half_screen_width = screen_width/2
 
-# Ball variables
-var ball_radius = 10.0
-var ball_color = Color.white
-onready var starting_ball_position = Vector2(half_screen_width, half_screen_height)
-onready var ball_position = starting_ball_position
-
-# Ball speed
-var starting_speed = Vector2(400.0, 0.0)
-var ball_speed = starting_speed 
+# Ball object instancing
+onready var ball: Ball = Ball.new(Vector2(half_screen_width, half_screen_height))
 
 # Paddle variables
 var paddle_color = Color.white
@@ -72,6 +65,8 @@ const MAX_SCORE = 3
 var is_player_win
 
 func _ready() -> void:
+	add_child(ball)
+	
 	font.font_data = roboto_font_file
 	font.size = font_size
 	half_font_width = font.get_string_size(string_value).x/2
@@ -116,10 +111,10 @@ func _physics_process(delta: float) -> void:
 				is_player_win = false
 			
 			if is_player_serve:
-				ball_speed = starting_speed
+#				ball.reset_ball(is_player_serve)
 				change_string("Player Serve: press Spacebar to serve.")
 			else:
-				ball_speed = -starting_speed
+#				ball.reset_ball(is_player_serve)
 				change_string("AI Serve: press Spacebar to serve.")
 			
 			if Input.is_key_pressed(KEY_SPACE) and delta_key_press > MAX_KEY_TIME:
@@ -132,9 +127,9 @@ func _physics_process(delta: float) -> void:
 				current_game_state = GAME_STATE.MENU
 				delta_key_press = RESET_DELTA_KEY
 			
-			ball_position += ball_speed * delta
+			ball.move_ball(delta)
 			
-			if ball_position.x <= 0:
+			if ball.get_position().x <= 0:
 				current_game_state = GAME_STATE.SERVE
 				delta_key_press = RESET_DELTA_KEY
 				is_player_serve = true
@@ -143,7 +138,7 @@ func _physics_process(delta: float) -> void:
 				AI_score += 1
 				AI_score_text = AI_score as String
 				
-			if ball_position.x >= screen_width:
+			if ball.get_position().x >= screen_width:
 				current_game_state = GAME_STATE.SERVE
 				delta_key_press = RESET_DELTA_KEY
 				is_player_serve = false
@@ -152,45 +147,18 @@ func _physics_process(delta: float) -> void:
 				player_score += 1
 				player_score_text = player_score as String
 				
-			if ball_position.y - ball_radius <= 0.0:
-				ball_speed.y = -ball_speed.y
-			if ball_position.y + ball_radius >= screen_height:
-				ball_speed.y = -ball_speed.y
+			if ball.get_top_point() <= 0.0:
+				ball.inverse_Y_speed()
+			if ball.get_bottom_point() >= screen_height:
+				ball.inverse_Y_speed()
 			
-			if (ball_position.x - ball_radius >= player_position.x and
-			ball_position.x - ball_radius <= player_position.x + paddle_size.x):
-				var paddle_section = paddle_size.y/3
-				
-				if (ball_position.y >= player_position.y and
-				ball_position.y <= player_position.y + paddle_section):
-					var temp_ball_speed = Vector2(-ball_speed.x, -400.0)
-					ball_speed = temp_ball_speed
-				elif (ball_position.y > player_position.y + paddle_section and
-				ball_position.y <= player_position.y + paddle_section * 2):
-					var temp_ball_speed = Vector2(-ball_speed.x, 0.0)
-					ball_speed = temp_ball_speed
-				elif (ball_position.y > player_position.y + paddle_section * 2 and
-				ball_position.y <= player_position.y + paddle_section * 3):
-					var temp_ball_speed = Vector2(-ball_speed.x, 400.0)
-					ball_speed = temp_ball_speed
-				
-			if (ball_position.x + ball_radius >= AI_position.x and
-			ball_position.x + ball_radius <= AI_position.x + paddle_size.x):
-				var paddle_section = paddle_size.y/3
-				
-				if (ball_position.y >= AI_position.y and
-				ball_position.y < AI_position.y + paddle_section):
-					var temp_ball_speed = Vector2(-ball_speed.x, -400.0)
-					ball_speed = temp_ball_speed
-				elif (ball_position.y >= AI_position.y + paddle_section and
-				ball_position.y < AI_position.y + paddle_section * 2):
-					var temp_ball_speed = Vector2(-ball_speed.x, 0.0)
-					ball_speed = temp_ball_speed
-				elif (ball_position.y >= AI_position.y + paddle_section * 2 and
-				ball_position.y < AI_position.y + paddle_section * 3):
-					var temp_ball_speed = Vector2(-ball_speed.x, 400.0)
-					ball_speed = temp_ball_speed
-					
+			if Collisions.point_to_rect(ball.get_position(), Rect2(player_position, paddle_size)):
+				ball.inverse_X_speed()
+			
+			if Collisions.point_to_rect(ball.get_position(), Rect2(AI_position, paddle_size)):
+				ball.inverse_X_speed()
+			
+			
 			# Player movement
 			if Input.is_key_pressed(KEY_W):
 				player_position.y += -player_speed * delta
@@ -202,9 +170,9 @@ func _physics_process(delta: float) -> void:
 				player_rectangle = Rect2(player_position, paddle_size)
 				
 			# AI movement
-			if ball_position.y > AI_position.y + (paddle_size.y/2 + 10):
+			if ball.get_position().y > AI_position.y + (paddle_size.y/2 + 10):
 				AI_position.y += 250 * delta # AI speed
-			if ball_position.y < AI_position.y + (paddle_size.y/2 - 10):
+			if ball.get_position().y < AI_position.y + (paddle_size.y/2 - 10):
 				AI_position.y -= 250 * delta
 			
 			AI_position.y = clamp(AI_position.y, 0.0, screen_height - paddle_size.y)
@@ -213,7 +181,6 @@ func _physics_process(delta: float) -> void:
 			update()
 	
 func _draw() -> void:
-	draw_circle(ball_position, ball_radius, ball_color)
 	draw_rect(player_rectangle, paddle_color)
 	draw_rect(AI_rectangle, paddle_color)
 	draw_string(font, string_position, string_value)
@@ -227,7 +194,7 @@ func set_starting_position():
 	player_position = Vector2(paddle_padding, half_screen_height-half_paddle_height)
 	player_rectangle = Rect2(player_position, paddle_size)
 	
-	ball_position = starting_ball_position
+	ball.reset_ball(is_player_serve)
 	
 func change_string(new_string_value):
 	string_value = new_string_value

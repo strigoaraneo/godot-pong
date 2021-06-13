@@ -8,10 +8,26 @@
 
 config_version=4
 
+_global_script_classes=[ {
+"base": "Node2D",
+"class": "Ball",
+"language": "GDScript",
+"path": "res://ball/Ball.gd"
+}, {
+"base": "Resource",
+"class": "Collisions",
+"language": "GDScript",
+"path": "res://misc/Collisions.gd"
+} ]
+_global_script_class_icons={
+"Ball": "",
+"Collisions": ""
+}
+
 [application]
 
 config/name="pong"
-run/main_scene="res://Node2D.tscn"
+run/main_scene="res://PongGame.tscn"
 
 [display]
 
