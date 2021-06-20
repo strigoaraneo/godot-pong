@@ -9,13 +9,11 @@ var current_game_state = GAME_STATE.MENU
 
 # Screen values
 # onready to set the variable after everything is ready
-onready var screen_width = get_tree().get_root().size.x
-onready var screen_height = get_tree().get_root().size.y
-onready var half_screen_height = screen_height/2
-onready var half_screen_width = screen_width/2
+onready var screen: Rect2 = get_tree().get_root().get_visible_rect()
+onready var screen_box: BoundingBox = BoundingBox.new(screen)
 
 # Ball object instancing
-onready var ball: Ball = Ball.new(Vector2(half_screen_width, half_screen_height))
+onready var ball: Ball = Ball.new(screen_box.get_center())
 
 # Paddle variables
 var paddle_color = Color.white
@@ -24,11 +22,11 @@ var half_paddle_height = paddle_size.y/2
 var paddle_padding = 10.0
 
 # Player paddle
-onready var player_position = Vector2(paddle_padding, half_screen_height-half_paddle_height)
+onready var player_position = Vector2(paddle_padding, screen_box.get_half_height() - half_paddle_height)
 onready var player_rectangle = Rect2(player_position, paddle_size)
 
 # AI paddle
-onready var AI_position = Vector2(screen_width - (paddle_padding + paddle_size.x), half_screen_height-half_paddle_height)
+onready var AI_position = Vector2(screen_box.get_size().x - (paddle_padding + paddle_size.x), screen_box.get_half_height() - half_paddle_height)
 onready var AI_rectangle = Rect2(AI_position, paddle_size)
 
 # Font variable
@@ -71,12 +69,12 @@ func _ready() -> void:
 	font.size = font_size
 	half_font_width = font.get_string_size(string_value).x/2
 	font_height = font.get_height()
-	string_position = Vector2(half_screen_width - half_font_width, font_height)
+	string_position = Vector2(screen_box.get_half_width() - half_font_width, font_height)
 	
 	player_text_half_width = font.get_string_size(player_score_text).x/2
-	player_score_position = Vector2(half_screen_width - (half_screen_width/2) - player_text_half_width, font_height + 50)
+	player_score_position = Vector2(screen_box.get_half_width() - (screen_box.get_half_width()/2.0) - player_text_half_width, font_height + 50)
 	AI_text_half_width = font.get_string_size(AI_score_text).x/2
-	AI_score_position = Vector2(half_screen_width + (half_screen_width/2) - AI_text_half_width, font_height + 50)
+	AI_score_position = Vector2(screen_box.get_half_width() + (screen_box.get_half_width()/2.0) - AI_text_half_width, font_height + 50)
 	
 func _physics_process(delta: float) -> void:
 	delta_key_press += delta
@@ -129,7 +127,7 @@ func _physics_process(delta: float) -> void:
 			
 			ball.move_ball(delta)
 			
-			if ball.get_position().x <= 0:
+			if screen_box.is_pass_left_bound(ball.get_position()):
 				current_game_state = GAME_STATE.SERVE
 				delta_key_press = RESET_DELTA_KEY
 				is_player_serve = true
@@ -138,7 +136,7 @@ func _physics_process(delta: float) -> void:
 				AI_score += 1
 				AI_score_text = AI_score as String
 				
-			if ball.get_position().x >= screen_width:
+			if screen_box.is_pass_right_bound(ball.get_position()):
 				current_game_state = GAME_STATE.SERVE
 				delta_key_press = RESET_DELTA_KEY
 				is_player_serve = false
@@ -147,14 +145,13 @@ func _physics_process(delta: float) -> void:
 				player_score += 1
 				player_score_text = player_score as String
 				
-			if ball.get_top_point() <= 0.0:
+			if screen_box.is_pass_top_bound(ball.get_top_point()):
 				ball.inverse_Y_speed()
-			if ball.get_bottom_point() >= screen_height:
+			if screen_box.is_pass_bottom_bound(ball.get_bottom_point()):
 				ball.inverse_Y_speed()
 			
 			if Collisions.point_to_rect(ball.get_position(), Rect2(player_position, paddle_size)):
 				ball.inverse_X_speed()
-			
 			if Collisions.point_to_rect(ball.get_position(), Rect2(AI_position, paddle_size)):
 				ball.inverse_X_speed()
 			
@@ -162,11 +159,11 @@ func _physics_process(delta: float) -> void:
 			# Player movement
 			if Input.is_key_pressed(KEY_W):
 				player_position.y += -player_speed * delta
-				player_position.y = clamp(player_position.y, 0.0, screen_height - paddle_size.y)
+				player_position.y = clamp(player_position.y, 0.0, screen_box.get_size().y - paddle_size.y)
 				player_rectangle = Rect2(player_position, paddle_size)
 			if Input.is_key_pressed(KEY_S):
 				player_position.y += player_speed * delta
-				player_position.y = clamp(player_position.y, 0.0, screen_height - paddle_size.y)
+				player_position.y = clamp(player_position.y, 0.0, screen_box.get_size().y - paddle_size.y)
 				player_rectangle = Rect2(player_position, paddle_size)
 				
 			# AI movement
@@ -175,7 +172,7 @@ func _physics_process(delta: float) -> void:
 			if ball.get_position().y < AI_position.y + (paddle_size.y/2 - 10):
 				AI_position.y -= 250 * delta
 			
-			AI_position.y = clamp(AI_position.y, 0.0, screen_height - paddle_size.y)
+			AI_position.y = clamp(AI_position.y, 0.0, screen_box.get_size().y - paddle_size.y)
 			AI_rectangle = Rect2(AI_position, paddle_size)
 			
 			update()
@@ -188,10 +185,10 @@ func _draw() -> void:
 	draw_string(font, AI_score_position, AI_score_text)
 	
 func set_starting_position():
-	AI_position = Vector2(screen_width - (paddle_padding + paddle_size.x), half_screen_height-half_paddle_height)
+	AI_position = Vector2(screen_box.get_size().x - (paddle_padding + paddle_size.x), screen_box.get_half_height()-half_paddle_height)
 	AI_rectangle = Rect2(AI_position, paddle_size)
 	
-	player_position = Vector2(paddle_padding, half_screen_height-half_paddle_height)
+	player_position = Vector2(paddle_padding, screen_box.get_half_height()-half_paddle_height)
 	player_rectangle = Rect2(player_position, paddle_size)
 	
 	ball.reset_ball(is_player_serve)
@@ -199,5 +196,5 @@ func set_starting_position():
 func change_string(new_string_value):
 	string_value = new_string_value
 	half_font_width = font.get_string_size(string_value).x/2
-	string_position = Vector2(half_screen_width - half_font_width, font_height)
+	string_position = Vector2(screen_box.get_half_width() - half_font_width, font_height)
 	update()	# Force a call to the _draw() virtual method

@@ -25,7 +25,7 @@ func move_ball(delta: float) -> void:
 	
 func reset_ball(player_serve: bool) -> void:
 	_pos = _reset_pos # Assuming ball is centered on the screen
-	_speed = _reset_speed if _player_serve else -_reset_speed
+	_speed = _reset_speed if player_serve else -_reset_speed
 	update()
 	
 func inverse_Y_speed() -> void:
@@ -37,10 +37,10 @@ func inverse_X_speed() -> void:
 func get_position() -> Vector2:
 	return _pos
 
-func get_top_point() -> float:
-	return _pos.y - _radius
+func get_top_point() -> Vector2:
+	return Vector2(_pos.x, _pos.y - _radius)
 
-func get_bottom_point() -> float:
-	return _pos.y + _radius
+func get_bottom_point() -> Vector2:
+	return Vector2(_pos.x, _pos.y + _radius)
 	
 	

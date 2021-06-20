@@ -15,12 +15,18 @@ _global_script_classes=[ {
 "path": "res://ball/Ball.gd"
 }, {
 "base": "Resource",
+"class": "BoundingBox",
+"language": "GDScript",
+"path": "res://misc/BoundingBox.gd"
+}, {
+"base": "Resource",
 "class": "Collisions",
 "language": "GDScript",
 "path": "res://misc/Collisions.gd"
 } ]
 _global_script_class_icons={
 "Ball": "",
+"BoundingBox": "",
 "Collisions": ""
 }
 
