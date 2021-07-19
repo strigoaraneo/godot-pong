@@ -9,6 +9,11 @@
 config_version=4
 
 _global_script_classes=[ {
+"base": "Paddle",
+"class": "AIPaddle",
+"language": "GDScript",
+"path": "res://paddle/AIPaddle.gd"
+}, {
 "base": "Node2D",
 "class": "Ball",
 "language": "GDScript",
@@ -23,11 +28,30 @@ _global_script_classes=[ {
 "class": "Collisions",
 "language": "GDScript",
 "path": "res://misc/Collisions.gd"
+}, {
+"base": "Node2D",
+"class": "Paddle",
+"language": "GDScript",
+"path": "res://paddle/Paddle.gd"
+}, {
+"base": "Paddle",
+"class": "PlayerPaddle",
+"language": "GDScript",
+"path": "res://paddle/PlayerPaddle.gd"
+}, {
+"base": "Node2D",
+"class": "Text",
+"language": "GDScript",
+"path": "res://misc/Text.gd"
 } ]
 _global_script_class_icons={
+"AIPaddle": "",
 "Ball": "",
 "BoundingBox": "",
-"Collisions": ""
+"Collisions": "",
+"Paddle": "",
+"PlayerPaddle": "",
+"Text": ""
 }
 
 [application]
